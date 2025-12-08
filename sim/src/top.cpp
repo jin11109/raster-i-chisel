@@ -1,5 +1,8 @@
 // Original code (c) 2023 Alan Jian
 // Licensed under MIT License
+//
+// Modifications (c) 2025 jin11109
+// Licensed under MIT License
 
 #include <algorithm>
 #include <cstdlib>
@@ -218,10 +221,15 @@ static void deferred_shading(uint32_t *tile,
                 fixed intensity = dot(dir, n);
                 if (intensity < 0)
                     intensity = 0;
-                
-                    intensity /=
-                    hls::sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
 
+                fixed len = hls::sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
+
+                if (len > (fixed)0.001) {
+                    intensity = intensity / len;
+                } else {
+                    intensity = 0; 
+                }
+                
                 fixed factor = intensity * 255;
 
                 int r = factor;
