@@ -7,18 +7,18 @@
 #include <algorithm>
 #include <cstdlib>
 
-#include <fb.hpp>
 #ifdef __SYNTHESIS__
  #include <hls_math.h>
 #else
  #include <cmath>
 #endif
-#include <math/math.hpp>
-#include <math/triangle.hpp>
-#include <mem_layout.hpp>
-#include <mesh.hpp>
-#include <utils/aabb.hpp>
-#include <utils/color.hpp>
+#include "fb.hpp"
+#include "math/math.hpp"
+#include "math/triangle.hpp"
+#include "mem_layout.hpp"
+#include "mesh.hpp"
+#include "utils/aabb.hpp"
+#include "utils/color.hpp"
 
 static Vec3f rotate_vec(Vec3f v, Vec3f axis, fixed sine, fixed cosine) {
     Vec3f vc = axis * dot(v, axis);

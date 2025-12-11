@@ -1,12 +1,17 @@
 // Original code (c) 2023 Alan Jian
 // Licensed under MIT License
+//
+// Modifications (c) 2025 jin11109
+// Licensed under MIT License
 
 #include <cstddef>
 #include <string>
 
 #include <SDL2/SDL.h>
 
-#include <fb.hpp>
+#include "fb.hpp"
+#include "types/ap_int.h"
+#include "types/ap_fixed.h"
 
 void trinity_renderer(fb_id_t fb_id, ap_uint<128> *vram, ap_uint<9> angle);
 

@@ -1,7 +1,7 @@
 // Original code (c) 2023 Alan Jian
 // Licensed under MIT License
 
-#include <mesh.hpp>
+#include "mesh.hpp"
 
 extern const Vec3f MESH_VERTICES[NR_MESH_VERTICES] = {
     Vec3f(-0.003216, -0.254268, -0.301877),

@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include <math/vec.hpp>
-#include <utils/color.hpp>
+#include "math/vec.hpp"
+#include "utils/color.hpp"
 
 struct MeshIndex {
     Vec3i vertices;

@@ -4,7 +4,7 @@
 // Modifications (c) 2025 jin11109
 // Licensed under MIT License
 
-#include <fb.hpp>
+#include "fb.hpp"
 
 static uint32_t tile_buf[FB_WIDTH * FB_TILE_HEIGHT];
 
