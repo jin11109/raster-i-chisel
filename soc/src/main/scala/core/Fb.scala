@@ -235,7 +235,7 @@ class FbWriter extends Module {
   /* Address Channel (AW Channel) */
   val addrValid = RegInit(false.B)
   val addr      = RegInit(0.U(Fb.addrWidth.W))
-  val addrBegan = RegInit(false.B) // 用來控制是否允許發送地址
+  val addrBegan = RegInit(false.B) // Use to control whether allow to transmitt address
   val done      = RegInit(false.B)
 
   /* Data Channel (W Channel) */

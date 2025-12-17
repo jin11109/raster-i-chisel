@@ -4,3 +4,4 @@ project/
 build/
 obj_dir/
 verification/common/include/types/
+*.vcd

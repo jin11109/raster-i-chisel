@@ -3,6 +3,7 @@
 
 #include "VTrinity.h"
 #include "verilated.h"
+#include "verilated_vcd_c.h"
 
 int err_cnt = 0;
 void verify_pixel(int global_x, int global_y, uint32_t pixel_val) {
@@ -22,8 +23,16 @@ void verify_pixel(int global_x, int global_y, uint32_t pixel_val) {
 }
 
 int main(int argc, char** argv) {
+    VerilatedContext* contextp = new VerilatedContext;
     Verilated::commandArgs(argc, argv);
-    VTrinity* top = new VTrinity;
+    VTrinity* top = new VTrinity{contextp};
+
+    /* Init trace */
+    /* TODO: pack tacring logic */
+    Verilated::traceEverOn(true);
+    VerilatedVcdC* tfp = new VerilatedVcdC;
+    top->trace(tfp, 99);  // trace all
+    tfp->open("trace.vcd");
 
     int total_cycles = 0;
 
@@ -36,13 +45,17 @@ int main(int argc, char** argv) {
     for (int i = 0; i < 50; i++) {
         top->clock = !top->clock;
         top->eval();
+        tfp->dump(contextp->time());
+        contextp->timeInc(1);
         top->clock = !top->clock;
         top->eval();
+        tfp->dump(contextp->time());
+        contextp->timeInc(1);
         total_cycles++;
     }
     top->reset = 0;
 
-    // Start verification
+    /* Start verification */
     for (int frame = 0; frame < 4; frame++) {
         std::cout << "[INFO] Rendering Frame " << frame << "..." << std::endl;
 
@@ -51,10 +64,14 @@ int main(int argc, char** argv) {
 
         /* Wait util renderer draw a frame into frame buffer */
         while (!top->io_debug_graphicsDone && cycles < timeout) {
-            top->clock = !top->clock; // Toggle Clock
-            top->eval();              // Update Logic
             top->clock = !top->clock;
             top->eval();
+            tfp->dump(contextp->time());
+            contextp->timeInc(1);
+            top->clock = !top->clock;
+            top->eval();
+            tfp->dump(contextp->time());
+            contextp->timeInc(1);
             cycles++;
             total_cycles++;
         }
@@ -65,7 +82,7 @@ int main(int argc, char** argv) {
         }
 
         uint32_t base_addr = 0;
-        if (top->Trinity__DOT__io_debug_graphicsFbId == 1) {
+        if (top->io_debug_graphicsFbId == 1) {
             base_addr = (1 << 20);
         }
 
@@ -82,6 +99,8 @@ int main(int argc, char** argv) {
                 top->io_debug_idx = word_idx;
 
                 top->eval();
+                tfp->dump(contextp->time());
+                contextp->timeInc(1);
 
                 uint32_t p0 = top->io_debug_data[0];
                 uint32_t p1 = top->io_debug_data[1];
@@ -110,8 +129,12 @@ int main(int argc, char** argv) {
         for (int i = 0; i < 10; i++) {
             top->clock = !top->clock;
             top->eval();
+            tfp->dump(contextp->time());
+            contextp->timeInc(1);
             top->clock = !top->clock;
             top->eval();
+            tfp->dump(contextp->time());
+            contextp->timeInc(1);
             total_cycles++;
         }
 
@@ -120,14 +143,23 @@ int main(int argc, char** argv) {
         for (int i = 0; i < 10; i++) {
             top->clock = !top->clock;
             top->eval();
+            tfp->dump(contextp->time());
+            contextp->timeInc(1);
             top->clock = !top->clock;
             top->eval();
+            tfp->dump(contextp->time());
+            contextp->timeInc(1);
             total_cycles++;
         }
     }
 
-    top->final();
-    delete top;
+    // end of traciing
+    tfp->close();
 
+    top->final();
+    delete tfp;
+    delete top;
+    delete contextp;
+    
     return 0;
 }

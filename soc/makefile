@@ -2,7 +2,9 @@
 BUILD_DIR = generated
 VERILATOR_DIR = verilator
 OBJ_DIR = obj_dir
-VERILATOR_FLAGS = --cc -j 4 --top-module Trinity -Mdir $(OBJ_DIR) --public -Wno-WIDTH
+VERILATOR_FLAGS = --cc -j 4 --public --top-module Trinity -Mdir $(OBJ_DIR) \
+                  --public -Wno-WIDTH
+VERILATOR_TRACE = --trace --trace-underscore --trace-structs
 
 all: verilog verilate
 
@@ -16,10 +18,11 @@ verilate: verilog
 	&& make -C $(OBJ_DIR) -f VTrinity.mk
 
 sim: verilog
-	cd $(VERILATOR_DIR) && verilator $(VERILATOR_FLAGS) --build --exe \
-	../$(BUILD_DIR)/Trinity.sv sim_stubs.v sim.cpp \
+	cd $(VERILATOR_DIR) && verilator $(VERILATOR_FLAGS) $(VERILATOR_TRACE) \
+	--build --exe ../$(BUILD_DIR)/Trinity.sv sim_stubs.v sim.cpp \
 	&& make -C $(OBJ_DIR) -f VTrinity.mk \
 	&& $(OBJ_DIR)/VTrinity
+	@echo "[INFO] Use gtkwave to open ./verilator/trace.vcd"
 
 clean:
 	rm -rf project target $(BUILD_DIR) $(VERILATOR_DIR)/$(OBJ_DIR)
