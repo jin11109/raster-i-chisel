@@ -7,11 +7,10 @@ TMP_DIR := tmp_hls
 .PHONY: csim cosim download_types clean
 
 csim: download_types
-	$(MAKE) -C ../renderer verilate
 	$(MAKE) -C c_sim demo
 
 cosim: download_types
-	$(MAKE) -C ../renderer verilate
+	$(MAKE) -C ../soc verilate
 	$(MAKE) -C cosim cosim
 
 # Download HLS headers
