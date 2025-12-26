@@ -4,4 +4,6 @@ project/
 build/
 obj_dir/
 verification/common/include/types/
+test_run_dir/
 *.vcd
+*.hex

@@ -10,7 +10,7 @@ csim: download_types
 	$(MAKE) -C c_sim demo
 
 cosim: download_types
-	$(MAKE) -C ../soc verilate
+	HEX_PATH=../../soc/src/main/resources/ $(MAKE) -C ../soc verilate
 	$(MAKE) -C cosim cosim
 
 # Download HLS headers

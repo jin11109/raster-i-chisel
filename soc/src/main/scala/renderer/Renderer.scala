@@ -52,11 +52,38 @@ class Renderer extends Module {
   val purple = FbRGB(255.U, 0.U, 255.U)
   val purplePixels = VecInit(Seq.fill(Fb.nrBanks)(purple))
 
-  // State Machine
-  val sIdle :: sRunning :: Nil = Enum(2)
-  // Start automatically
-  val state = RegInit(sRunning)
+  // Intermidiate memory buffer  
+  val memVertex = Module(new GenericRam(new ScreenVertex, 2048))
+  val memPos    = Module(new GenericRam(new TransFormedPos, 2048))
+  val memNorm   = Module(new GenericRam(new TransFormedNorm, 4096))
+  val memBB     = Module(new GenericRam(new BoundingBox, 4096))
+  // Prevent optimize out these buffer
+  /* TODO: Remove these if don't need */
+  dontTouch(memVertex.io)
+  dontTouch(memPos.io)
+  dontTouch(memNorm.io)
+  dontTouch(memBB.io)
+
+  // Geometry Unit
+  val geometry = Module(new Geometry)
+  geometry.io.angle := 0.U 
   
+  // Connect Memory Interfaces: Write Ports
+  memVertex.io.writer <> geometry.io.vtxWritePort
+  memPos.io.writer    <> geometry.io.posWritePort
+  memNorm.io.writer   <> geometry.io.normWritePort
+  memBB.io.writer     <> geometry.io.bbWritePort
+  // Connect Memory Interfaces: Read Ports
+  memVertex.io.reader <> geometry.io.VtxReadPort
+
+  // Unused read ports
+  memPos.io.reader.req.valid := false.B; memPos.io.reader.req.bits := 0.U
+  memNorm.io.reader.req.valid := false.B; memNorm.io.reader.req.bits := 0.U
+  memBB.io.reader.req.valid := false.B; memBB.io.reader.req.bits := 0.U
+
+  // State Machine
+  val sIdle :: sRunning :: sWaitFbWriter :: Nil = Enum(3)
+  val state = RegInit(sRunning)
   val fbIdReg = RegNext(io.fbId, 1.U)
   val start   = (io.fbId =/= fbIdReg)
 
@@ -67,6 +94,12 @@ class Renderer extends Module {
       }
     }
     is (sRunning) {
+      when (geometry.io.done) {
+        state := sWaitFbWriter
+      }
+    }
+    
+    is (sWaitFbWriter) {
       // If don't use !RegNext(fbWriter.io.done), the current donesignal
       // remains at true(Level-sensitive), causing the second frame to read the
       // old High signal at the very beginning.
@@ -77,7 +110,7 @@ class Renderer extends Module {
   }
 
   // Drive FbWriter request
-  fbWriter.io.req.valid := (state === sRunning)
+  fbWriter.io.req.valid := (state === sWaitFbWriter)
   fbWriter.io.req.bits.pix := purplePixels
 
   // Output done signal

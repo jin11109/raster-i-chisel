@@ -6,17 +6,21 @@
 
 #include <algorithm>
 #include <cstdlib>
+#include <fstream>
 
 #ifdef __SYNTHESIS__
- #include <hls_math.h>
+#include <hls_math.h>
 #else
- #include <cmath>
+#include <cmath>
 #endif
+#include "ap_fixed.h"
+#include "ap_int.h"
 #include "fb.hpp"
 #include "math/math.hpp"
 #include "math/triangle.hpp"
 #include "mem_layout.hpp"
 #include "mesh.hpp"
+#include "types.hpp"
 #include "utils/aabb.hpp"
 #include "utils/color.hpp"
 
@@ -28,8 +32,8 @@ static Vec3f rotate_vec(Vec3f v, Vec3f axis, fixed sine, fixed cosine) {
 }
 
 struct ScreenVertex {
-    Vec2i pos;
-    fixed z;
+        Vec2i pos;
+        fixed z;
 };
 
 static ScreenVertex screen_vertices[NR_MESH_VERTICES];
@@ -73,8 +77,8 @@ preproc_triangles:
 }
 
 struct PixAttrib {
-    Vec3f pos;
-    Vec3f n;
+        Vec3f pos;
+        Vec3f n;
 };
 
 static void render_triangle(fixed (*zbuf)[FB_SAMPLES_PER_PIXEL],
@@ -87,8 +91,7 @@ static void render_triangle(fixed (*zbuf)[FB_SAMPLES_PER_PIXEL],
                     (triangle.vertices[2].y - triangle.vertices[0].y) -
                 (triangle.vertices[1].y - triangle.vertices[0].y) *
                     (triangle.vertices[2].x - triangle.vertices[0].x));
-    if (area <= 0)
-        return;
+    if (area <= 0) return;
 
     Vec3i bary_orig = triangle.barycentric(pos);
     fixed z_orig = screen_vertices[idx.vertices.x].z * bary_orig.x +
@@ -211,7 +214,7 @@ render_y:
     }
 }
 
-static void deferred_shading(uint32_t *tile,
+static void deferred_shading(uint32_t* tile,
                              PixAttrib (*buf)[FB_SAMPLES_PER_PIXEL]) {
     for (int y = 0; y < FB_TILE_HEIGHT; y++) {
         for (int x = 0; x < FB_TILE_WIDTH; x++) {
@@ -222,16 +225,16 @@ static void deferred_shading(uint32_t *tile,
                 Vec3f n = buf[y * FB_TILE_WIDTH + x][i].n;
 
                 if (n.x == 0 && n.y == 0 && n.z == 0) {
-                    continue; 
+                    continue;
                 }
 
                 Vec3f dir = Vec3f(0, 0, 0) - pos;
                 fixed intensity = dot(dir, n);
-                if (intensity < 0)
-                    intensity = 0;
+                if (intensity < 0) intensity = 0;
 
 #ifdef __SYNTHESIS__
-                fixed len = hls::sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
+                fixed len =
+                    hls::sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
 #else
                 fixed sq_norm = dir.x * dir.x + dir.y * dir.y + dir.z * dir.z;
                 fixed len = (fixed)std::sqrt((double)sq_norm);
@@ -239,9 +242,9 @@ static void deferred_shading(uint32_t *tile,
                 if (len > (fixed)0.001) {
                     intensity = intensity / len;
                 } else {
-                    intensity = 0; 
+                    intensity = 0;
                 }
-                
+
                 fixed factor = intensity * 255;
 
                 int r = factor;
@@ -262,11 +265,71 @@ static void deferred_shading(uint32_t *tile,
     }
 }
 
+void dump_geo() {
+    std::ofstream ofs;
+
+    // Dump Screen Vertices
+    ofs.open("screen_vertices.txt");
+    if (!ofs.is_open()) {
+        std::cerr << "Failed to open screen_vertices.txt\n";
+        return;
+    }
+
+    for (const auto& v : screen_vertices) {
+        ofs << v.pos.x << ' ' << v.pos.y << ' '
+            << ap_uint<24>(fixed(v.z).range(23, 0)) << '\n';
+    }
+    ofs.close();
+
+    // Dump Transformed Positions
+    ofs.open("transformed_positions.txt");
+    if (!ofs.is_open()) {
+        std::cerr << "Failed to open transformed_positions.txt\n";
+        return;
+    }
+
+    for (const auto& p : transformed_positions) {
+        ofs << ap_uint<24>(fixed(p.x).range(23, 0)) << ' '
+            << ap_uint<24>(fixed(p.y).range(23, 0)) << ' '
+            << ap_uint<24>(fixed(p.z).range(23, 0)) << '\n';
+    }
+    ofs.close();
+
+    // Dump Transformed Normals
+    ofs.open("transformed_normals.txt");
+    if (!ofs.is_open()) {
+        std::cerr << "Failed to open transformed_normals.txt\n";
+        return;
+    }
+
+    for (const auto& n : transformed_normals) {
+        ofs << ap_uint<24>(fixed(n.x).range(23, 0)) << ' '
+            << ap_uint<24>(fixed(n.y).range(23, 0)) << ' '
+            << ap_uint<24>(fixed(n.z).range(23, 0)) << '\n';
+    }
+    ofs.close();
+
+    // Dump Bounding Boxes (補齊部分)
+    ofs.open("bounding_boxes.txt");
+    if (!ofs.is_open()) {
+        std::cerr << "Failed to open bounding_boxes.txt\n";
+        return;
+    }
+
+    for (const auto& bb : bounding_boxes) {
+        ofs << bb.min.x << ' ' << bb.min.y << ' ' << bb.max.x << ' ' << bb.max.y
+            << '\n';
+    }
+    ofs.close();
+
+    std::cout << "Debug data dumped successfully.\n";
+}
+
 #ifdef __SYNTHESIS__
 void trinity_renderer(fb_id_t fb_id, hls::burst_maxi<ap_uint<128>> vram,
                       ap_uint<9> angle)
 #else
-void trinity_renderer(fb_id_t fb_id, ap_uint<128> *vram, ap_uint<9> angle)
+void trinity_renderer(fb_id_t fb_id, ap_uint<128>* vram, ap_uint<9> angle)
 #endif
 {
 #pragma HLS INTERFACE mode = ap_ctrl_hs port = return
